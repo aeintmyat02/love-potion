@@ -1,0 +1,214 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mix Your Love Potion</title>
+<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:wght@400;700&family=Patrick+Hand&display=swap" rel="stylesheet">
+
+<style>
+/* ===== Global ===== */
+body{
+    margin:0;
+    padding:0;
+    font-family:"Playfair Display", serif;
+    background: linear-gradient(135deg,#fff5f8,#ffe6ec);
+    text-align:center;
+    color:#6d1b2a;
+}
+
+/* ===== Title ===== */
+h1{
+    margin-top:30px;
+    font-size:3em;
+    color:#c76c7a;
+    text-shadow:2px 2px 10px #ffd1d8;
+}
+
+/* ===== Form Card ===== */
+form{
+    background:rgba(255,255,255,0.85);
+    backdrop-filter: blur(6px);
+    border-radius:30px;
+    max-width:680px;
+    margin:20px auto;
+    padding:25px 20px;
+    box-shadow:0 20px 40px rgba(199,108,122,0.25);
+}
+
+/* ===== Ingredient Tags ===== */
+input[type=checkbox]{ display:none; }
+
+label.option{
+    display:inline-block;
+    margin:10px;
+    padding:12px 22px;
+    border-radius:18px;
+    background:#f4d6dc;
+    font-family:'Patrick Hand', cursive;
+    font-size:1.2em;
+    cursor:pointer;
+    transition: all 0.3s ease;
+    border:2px solid #e8b9c3;
+}
+
+input[type=checkbox]:checked + label{
+    background:#c76c7a;
+    color:#fff;
+    transform: scale(1.15);
+    box-shadow:0 8px 20px rgba(199,108,122,0.5);
+}
+
+/* ===== Mix Button ===== */
+button{
+    margin-top:25px;
+    padding:16px 45px;
+    border:none;
+    border-radius:30px;
+    font-family:'Great Vibes', cursive;
+    font-size:1.7em;
+    background:#6d1b2a;
+    color:#fff;
+    cursor:pointer;
+    box-shadow:0 10px 30px rgba(109,27,42,0.4);
+    transition: transform 0.3s, background 0.3s;
+}
+button:hover{
+    background:#c76c7a;
+    transform:scale(1.08);
+}
+
+/* ===== Lab Bottles ===== */
+.lab{
+    display:flex;
+    justify-content:center;
+    gap:35px;
+    margin:50px 0;
+    flex-wrap:wrap;
+}
+
+.bottle{
+    width:90px;
+    height:180px;
+    border-radius:0 0 30px 30px;
+    border:4px solid rgba(255,255,255,0.8);
+    background:rgba(255,255,255,0.4);
+    position:relative;
+    overflow:hidden;
+    box-shadow: inset 0 0 25px rgba(255,255,255,0.7),
+                0 15px 30px rgba(199,108,122,0.4);
+}
+
+.liquid{
+    position:absolute;
+    bottom:0;
+    width:100%;
+    height:0;
+    background:linear-gradient(to top,#f7b3c2,#ffdfe6);
+    border-radius:0 0 30px 30px;
+    transition:height 2s ease;
+}
+
+/* ===== Floating Hearts ===== */
+.bottle .heart{
+    width:12px;
+    height:12px;
+    background:#c76c7a;
+    position:absolute;
+    transform: rotate(-45deg);
+    animation: floatHeart 3s ease-in-out infinite;
+}
+.bottle .heart::before,
+.bottle .heart::after{
+    content:'';
+    position:absolute;
+    width:12px;
+    height:12px;
+    background:#c76c7a;
+    border-radius:50%;
+}
+.bottle .heart::before{ top:-6px; left:0; }
+.bottle .heart::after{ left:6px; top:0; }
+
+@keyframes floatHeart{
+    0%{ transform:translateY(0) rotate(-45deg) scale(0); opacity:0;}
+    50%{ opacity:1; }
+    100%{ transform:translateY(-80px) rotate(-45deg) scale(1); opacity:0;}
+}
+
+/* ===== Responsive ===== */
+@media(max-width:600px){
+    h1{ font-size:2.2em; }
+    label.option{ font-size:1em; padding:10px 16px; }
+    button{ font-size:1.4em; padding:14px 35px; }
+}
+</style>
+</head>
+
+<body>
+{% load static %}
+<audio id="whisperSound" preload="auto">
+    <source src="{% static 'sounds/whisper.wav' %}" type="audio/wav">
+</audio>
+<h1>✨ Mix Your Love Potion ✨</h1>
+
+<form method="post" id="potion-form" action="{% url 'mix_page' %}">
+    {% csrf_token %}
+    {% for field in form %}
+        {% for choice in field.field.queryset %}
+            <input type="checkbox" name="ingredients" value="{{ choice.id }}" id="ing{{ forloop.counter }}">
+            <label class="option" for="ing{{ forloop.counter }}">
+                {{ choice.name }} {{ choice.emoji }}
+            </label>
+        {% endfor %}
+    {% endfor %}
+    <br>
+    <button type="button" onclick="startMixing()">Mix with Love 💕</button>
+</form>
+
+<div class="lab">
+    <div class="bottle"><div class="liquid" id="liq1"></div></div>
+    <div class="bottle"><div class="liquid" id="liq2"></div></div>
+    <div class="bottle"><div class="liquid" id="liq3"></div></div>
+</div>
+<script>
+function startMixing(){
+    const checked = document.querySelectorAll('input[name="ingredients"]:checked').length;
+
+    // Soft validation message
+    if(checked < 3 || checked > 5){
+        alert("Choose at least 3 and no more than 5 ingredients, my dear 💕");
+        return;
+    }
+
+    // 🎧 Play whisper sound
+    const whisper = document.getElementById("whisperSound");
+    whisper.volume = 0.25; // gentle volume
+    whisper.currentTime = 0;
+    whisper.play().catch(()=>{});
+
+    // Liquid animation
+    document.getElementById('liq1').style.height = "85%";
+    document.getElementById('liq2').style.height = "65%";
+    document.getElementById('liq3').style.height = "45%";
+
+    // Floating hearts
+    document.querySelectorAll('.bottle').forEach(b=>{
+        for(let i=0;i<5;i++){
+            const h = document.createElement('div');
+            h.className = 'heart';
+            h.style.left = Math.random()*b.offsetWidth + 'px';
+            h.style.bottom = '0';
+            b.appendChild(h);
+            setTimeout(()=>h.remove(),3000);
+        }
+    });
+
+    // Submit after a romantic pause
+    setTimeout(()=>{
+        document.getElementById('potion-form').submit();
+    },1800);
+}
+</script>
+</body>
+</html>

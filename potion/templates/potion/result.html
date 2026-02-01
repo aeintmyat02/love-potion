@@ -1,0 +1,213 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>My Magical Love Letter</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Patrick+Hand&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+body{
+    margin:0;
+    padding:0;
+    font-family:"Playfair Display", serif;
+    background: linear-gradient(135deg,#fff0f8,#ffe0e6);
+    text-align:center;
+    color:#740e28;
+    overflow-x:hidden;
+}
+
+/* Page title */
+h1{
+    margin-top:30px;
+    font-size:3em;
+    color:#d97f8b;
+    text-shadow:2px 2px 10px #ffc2be;
+}
+
+/* Envelope */
+.envelope{
+    width:340px;
+    height:220px;
+    margin:30px auto;
+    position:relative;
+    background:#ffe6ec;
+    border-radius:15px;
+    box-shadow:0 20px 40px rgba(217,127,139,0.4);
+    cursor:pointer;
+    perspective:1000px; /* needed for 3D flip */
+}
+
+.envelope::before{
+    content:'';
+    position:absolute;
+    top:0;
+    left:0;
+    width:100%;
+    height:50%;
+    background:#ffc2be;
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    transform-origin:top;
+    transform: rotateX(0deg);
+    transition: transform 1s ease;
+}
+
+.envelope.open::before{
+    transform: rotateX(180deg);
+}
+
+/* Letter */
+.letter{
+    max-width:700px;
+    margin:30px auto;
+    background:#fff;
+    border-radius:25px;
+    padding:30px;
+    font-family:'Patrick Hand', cursive;
+    font-size:1.4em;
+    line-height:1.8em;
+    box-shadow:0 15px 35px rgba(217,127,139,0.4);
+    display:none;
+    opacity:0;
+    transition: opacity 0.6s ease;
+}
+
+/* Love letter title */
+h2{
+    font-family:'Dancing Script', cursive;
+    font-size:3em;
+    color:#d97f8b;
+    margin-bottom:15px;
+}
+
+/* Back button */
+button{
+    padding:12px 25px;
+    border:none;
+    border-radius:18px;
+    background:#d97f8b;
+    color:#fff;
+    font-size:1.1em;
+    cursor:pointer;
+    box-shadow:0 6px 18px rgba(217,127,139,0.4);
+}
+button:hover{
+    background:#ffc2be;
+    color:#740e28;
+}
+</style>
+</head>
+
+<body>
+
+<!-- 🎵 Background Song -->
+<audio id="bgMusic" loop>
+    <source src="{% static 'sounds/SayYes.mp3' %}" type="audio/mpeg">
+</audio>
+
+<!-- 🎵 Flap sound -->
+<audio id="flapSound">
+    <source src="{% static 'sounds/flap.mp3' %}" type="audio/mp3">
+</audio>
+
+<h1>💌 My Magical Love Letter for {{ username }} 💌</h1>
+
+<div class="envelope" id="envelope"></div>
+
+<div class="letter" id="letter">
+    {% if result %}
+        <h2>{{ result.title }}</h2>
+        <div id="letterText" data-text="{{ result.love_letter|escapejs }}"></div>
+    {% endif %}
+</div>
+
+<br>
+<button onclick="window.location.href='{% url 'clear_session' %}'">← Back</button>
+
+<script>
+/* ========= MUSIC CONTROL ========= */
+const music = document.getElementById("bgMusic");
+let musicStarted = false;
+
+function fadeInMusic(){
+    if(!musicStarted){
+        music.volume = 0;
+        music.play().then(()=>{
+            let v = 0;
+            const fade = setInterval(()=>{
+                if(v >= 0.3) clearInterval(fade);
+                music.volume = v;
+                v += 0.01; // slower fade-in
+            },200);
+        }).catch(()=>{});
+        musicStarted = true;
+    }
+}
+
+function fadeOutMusic(){
+    if(musicStarted){
+        let v = music.volume;
+        const fade = setInterval(()=>{
+            v -= 0.02;
+            if(v <= 0){
+                music.pause();
+                music.currentTime = 0;
+                clearInterval(fade);
+            } else {
+                music.volume = v;
+            }
+        },100);
+        musicStarted = false;
+    }
+}
+
+/* ========= ENVELOPE OPEN/CLOSE ========= */
+const envelope = document.getElementById("envelope");
+const letter = document.getElementById("letter");
+const flap = document.getElementById("flapSound");
+const textEl = document.getElementById("letterText");
+const text = textEl ? textEl.dataset.text : "";
+let i = 0; // typewriter index
+
+envelope.addEventListener("click", ()=>{
+    flap.currentTime = 0;
+    flap.play();
+
+    if(envelope.classList.contains("open")){
+        // CLOSE envelope
+        envelope.classList.remove("open");
+        letter.style.opacity = 0;
+        setTimeout(()=>{
+            letter.style.display = "none";
+            fadeOutMusic();
+            i = 0;
+            if(textEl) textEl.innerHTML = "";
+        },600);
+    } else {
+        // OPEN envelope
+        envelope.classList.add("open");
+        fadeInMusic();
+        setTimeout(()=>{
+            letter.style.display="block";
+            setTimeout(()=>letter.style.opacity = 1, 50);
+            typeWriter();
+        },800);
+    }
+});
+
+/* ========= TYPEWRITER ========= */
+function typeWriter(){
+    if(i < text.length){
+        textEl.innerHTML += text.charAt(i);
+        i++;
+        setTimeout(typeWriter,80); // slower typing: 80ms per char
+    }
+}
+
+/* ========= SAFETY: start music on any click (fallback) ========= */
+document.addEventListener("click", fadeInMusic, { once:true });
+</script>
+
+</body>
+</html>

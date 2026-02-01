@@ -36,9 +36,23 @@ h1{
     border-radius:15px;
     box-shadow:0 20px 40px rgba(217,127,139,0.4);
     cursor:pointer;
-    perspective:1000px; /* needed for 3D flip */
+    perspective:1000px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-family:'Patrick Hand', cursive;
+    font-size:2em;
+    color:#d97f8b;
+    text-shadow:1px 1px 3px #fff;
+    user-select:none;
+    transition: transform 0.3s;
 }
 
+.envelope:hover{
+    transform: scale(1.03);
+}
+
+/* Envelope flap */
 .envelope::before{
     content:'';
     position:absolute;
@@ -50,11 +64,26 @@ h1{
     clip-path: polygon(0 0, 100% 0, 50% 100%);
     transform-origin:top;
     transform: rotateX(0deg);
-    transition: transform 1s ease;
+    transition: transform 1s ease, box-shadow 0.5s ease;
+    box-shadow: inset 0 5px 15px rgba(0,0,0,0.05);
 }
 
 .envelope.open::before{
     transform: rotateX(180deg);
+}
+
+/* Tap text inside envelope */
+.envelope span{
+    pointer-events:none;
+    transform: translateY(15px);
+    animation: bounce 1.5s infinite ease-in-out;
+    display:inline-block;
+}
+
+/* Tap animation */
+@keyframes bounce{
+    0%,100%{ transform: translateY(15px); }
+    50%{ transform: translateY(5px); }
 }
 
 /* Letter */
@@ -70,7 +99,7 @@ h1{
     box-shadow:0 15px 35px rgba(217,127,139,0.4);
     display:none;
     opacity:0;
-    transition: opacity 0.6s ease;
+    transition: opacity 0.8s ease;
 }
 
 /* Love letter title */
@@ -91,29 +120,37 @@ button{
     font-size:1.1em;
     cursor:pointer;
     box-shadow:0 6px 18px rgba(217,127,139,0.4);
+    transition: transform 0.3s, background 0.3s;
 }
 button:hover{
     background:#ffc2be;
     color:#740e28;
+    transform: scale(1.05);
+}
+
+/* Responsive */
+@media(max-width:400px){
+    .envelope{ width:90%; height:180px; font-size:1.6em; }
+    h1{ font-size:2em; }
+    h2{ font-size:2em; }
 }
 </style>
 </head>
-
 <body>
 
-<!-- 🎵 Background Song -->
+<!-- Background Song -->
 <audio id="bgMusic" loop>
     <source src="{% static 'sounds/SayYes.mp3' %}" type="audio/mpeg">
 </audio>
 
-<!-- 🎵 Flap sound -->
+<!-- Flap sound -->
 <audio id="flapSound">
     <source src="{% static 'sounds/flap.mp3' %}" type="audio/mp3">
 </audio>
 
-<h1>💌 My Magical Love Letter for {{ username }} 💌</h1>
+<h1>💌 My Magical Love Letter for My Little Prince 💌</h1>
 
-<div class="envelope" id="envelope"></div>
+<div class="envelope" id="envelope"><span>Tap Here!</span></div>
 
 <div class="letter" id="letter">
     {% if result %}
@@ -126,22 +163,27 @@ button:hover{
 <button onclick="window.location.href='{% url 'clear_session' %}'">← Back</button>
 
 <script>
-/* ========= MUSIC CONTROL ========= */
 const music = document.getElementById("bgMusic");
-let musicStarted = false;
+const flap = document.getElementById("flapSound");
+const envelope = document.getElementById("envelope");
+const letter = document.getElementById("letter");
+const textEl = document.getElementById("letterText");
+const text = textEl ? textEl.dataset.text : "";
+let i=0;
+let musicStarted=false;
 
 function fadeInMusic(){
     if(!musicStarted){
         music.volume = 0;
         music.play().then(()=>{
-            let v = 0;
+            let v=0;
             const fade = setInterval(()=>{
-                if(v >= 0.3) clearInterval(fade);
-                music.volume = v;
-                v += 0.01; // slower fade-in
+                if(v>=0.3) clearInterval(fade);
+                music.volume=v;
+                v+=0.01;
             },200);
         }).catch(()=>{});
-        musicStarted = true;
+        musicStarted=true;
     }
 }
 
@@ -154,60 +196,46 @@ function fadeOutMusic(){
                 music.pause();
                 music.currentTime = 0;
                 clearInterval(fade);
-            } else {
-                music.volume = v;
-            }
+            } else music.volume = v;
         },100);
-        musicStarted = false;
+        musicStarted=false;
     }
 }
 
-/* ========= ENVELOPE OPEN/CLOSE ========= */
-const envelope = document.getElementById("envelope");
-const letter = document.getElementById("letter");
-const flap = document.getElementById("flapSound");
-const textEl = document.getElementById("letterText");
-const text = textEl ? textEl.dataset.text : "";
-let i = 0; // typewriter index
+function typeWriter(){
+    if(i < text.length){
+        textEl.innerHTML += text.charAt(i);
+        i++;
+        setTimeout(typeWriter,80);
+    }
+}
 
 envelope.addEventListener("click", ()=>{
-    flap.currentTime = 0;
-    flap.play();
-
+    flap.currentTime=0; flap.play();
     if(envelope.classList.contains("open")){
-        // CLOSE envelope
+        // close
         envelope.classList.remove("open");
-        letter.style.opacity = 0;
+        letter.style.opacity=0;
         setTimeout(()=>{
-            letter.style.display = "none";
+            letter.style.display="none";
             fadeOutMusic();
-            i = 0;
-            if(textEl) textEl.innerHTML = "";
+            i=0;
+            if(textEl) textEl.innerHTML="";
         },600);
     } else {
-        // OPEN envelope
+        // open
         envelope.classList.add("open");
         fadeInMusic();
         setTimeout(()=>{
             letter.style.display="block";
-            setTimeout(()=>letter.style.opacity = 1, 50);
+            setTimeout(()=>letter.style.opacity=1,50);
             typeWriter();
         },800);
     }
 });
 
-/* ========= TYPEWRITER ========= */
-function typeWriter(){
-    if(i < text.length){
-        textEl.innerHTML += text.charAt(i);
-        i++;
-        setTimeout(typeWriter,80); // slower typing: 80ms per char
-    }
-}
-
-/* ========= SAFETY: start music on any click (fallback) ========= */
+// fallback start music
 document.addEventListener("click", fadeInMusic, { once:true });
 </script>
-
 </body>
 </html>

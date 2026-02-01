@@ -141,11 +141,13 @@ button:hover{
 <!-- Background Song -->
 <audio id="bgMusic" loop>
     <source src="{% static 'audio/SayYes.mp3' %}" type="audio/mpeg">
+    Your browser does not support the audio element.
 </audio>
 
 <!-- Flap sound -->
 <audio id="flapSound">
-    <source src="{% static 'sounds/flap.mp3' %}" type="audio/mp3">
+    <source src="{% static 'sounds/flap.mp3' %}" type="audio/mpeg">
+    Your browser does not support the audio element.
 </audio>
 
 <h1>💌 My Magical Love Letter for My Little Prince 💌</h1>
@@ -211,29 +213,26 @@ function typeWriter(){
 }
 
 envelope.addEventListener("click", ()=>{
-    flap.currentTime=0; flap.play();
-    if(envelope.classList.contains("open")){
-        // close
-        envelope.classList.remove("open");
-        letter.style.opacity=0;
-        setTimeout(()=>{
-            letter.style.display="none";
-            fadeOutMusic();
-            i=0;
-            if(textEl) textEl.innerHTML="";
-        },600);
-    } else {
-        // open
-        envelope.classList.add("open");
-        fadeInMusic();
-        setTimeout(()=>{
-            letter.style.display="block";
-            setTimeout(()=>letter.style.opacity=1,50);
-            typeWriter();
-        },800);
-    }
-});
+    // Play flap
+    flap.currentTime = 0;
+    flap.play();
 
+    // Play background music
+    if(!musicStarted){
+        music.volume = 0;
+        music.play().then(()=>{
+            let v = 0;
+            const fade = setInterval(()=>{
+                if(v >= 0.3) clearInterval(fade);
+                music.volume = v;
+                v += 0.01;
+            },200);
+        }).catch(()=>{});
+        musicStarted = true;
+    }
+
+    // Open or close envelope logic...
+});
 // fallback start music
 document.addEventListener("click", fadeInMusic, { once:true });
 </script>
